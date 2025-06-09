@@ -25,11 +25,25 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
-    // await client.connect();
-    // Send a ping to confirm a successful connection
-    // await client.db("admin").command({ ping: 1 });
-    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    const carsCollection = client.db("carRental").collection("cars");
+
+    // cars api
+    app.get("/cars", async (req, res) => {
+      const email = req.query.email;
+      const query = {};
+
+      if (email) {
+        query.email = email;
+      }
+      const result = await carsCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.post("/cars", async (req, res) => {
+      const addCar = req.body;
+      const result = await carsCollection.insertOne(addCar);
+      res.send(result);
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
