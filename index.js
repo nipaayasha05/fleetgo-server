@@ -26,6 +26,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const carsCollection = client.db("carRental").collection("cars");
+    const bookingCollection = client.db("carRental").collection("bookings");
 
     // cars api
     app.get("/cars", async (req, res) => {
@@ -57,9 +58,35 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/recentCar", async (req, res) => {
+      const result = await carsCollection
+        .find()
+        .sort({ date: -1 })
+        .limit(8)
+        .toArray();
+      res.send(result);
+    });
+
+    app.get("/bookings", async (req, res) => {
+      const email = req.query.email;
+      const query = {};
+      if (email) {
+        query.email = email;
+      }
+      const result = await bookingCollection.find(query).toArray();
+      res.send(result);
+    });
+
     app.post("/cars", async (req, res) => {
       const addCar = req.body;
       const result = await carsCollection.insertOne(addCar);
+      res.send(result);
+    });
+
+    app.post("/bookings", async (req, res) => {
+      const booking = req.body;
+      console.log(booking);
+      const result = await bookingCollection.insertOne(booking);
       res.send(result);
     });
 
