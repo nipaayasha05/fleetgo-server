@@ -79,6 +79,7 @@ async function run() {
 
     app.post("/cars", async (req, res) => {
       const addCar = req.body;
+      addCar.bookingCount = parseInt(addCar.bookingCount) || 0;
       const result = await carsCollection.insertOne(addCar);
       res.send(result);
     });
@@ -100,6 +101,28 @@ async function run() {
       const result = await carsCollection.updateOne(filter, updatedDoc);
       res.send(result);
     });
+
+    app.patch("/cars/increment-booking/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = { $inc: { bookingCount: 1 } };
+
+      const result = await carsCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
+
+    // app.put("/cars/:id", async (req, res) => {
+    //   const id = req.params.id;
+    //   const filter = { _id: new ObjectId(id) };
+    //   // const { bookingCount } = req.body;
+    //   const updatedDoc = {
+    //     $inc: {
+    //       bookingCount: 1,
+    //     },
+    //   };
+    //   const result = await carsCollection.updateOne(filter, updatedDoc);
+    //   res.send(result);
+    // });
 
     app.patch("/bookings/:id", async (req, res) => {
       const id = req.params.id;
