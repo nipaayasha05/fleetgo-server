@@ -81,6 +81,7 @@ async function run() {
       const addCar = req.body;
       addCar.bookingCount = parseInt(addCar.bookingCount) || 0;
       const result = await carsCollection.insertOne(addCar);
+
       res.send(result);
     });
 
@@ -95,6 +96,7 @@ async function run() {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const updatedCar = req.body;
+      updatedCar.bookingCount = parseInt(updatedCar.bookingCount) || 0;
       const updatedDoc = {
         $set: updatedCar,
       };
