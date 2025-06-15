@@ -31,7 +31,7 @@ async function run() {
     // cars api
     app.get("/cars", async (req, res) => {
       const { search } = req.query;
-      // console.log(search);
+
       const email = req.query.email;
       let query = {};
 
@@ -112,19 +112,6 @@ async function run() {
       const result = await carsCollection.updateOne(filter, updatedDoc);
       res.send(result);
     });
-
-    // app.put("/cars/:id", async (req, res) => {
-    //   const id = req.params.id;
-    //   const filter = { _id: new ObjectId(id) };
-    //   // const { bookingCount } = req.body;
-    //   const updatedDoc = {
-    //     $inc: {
-    //       bookingCount: 1,
-    //     },
-    //   };
-    //   const result = await carsCollection.updateOne(filter, updatedDoc);
-    //   res.send(result);
-    // });
 
     app.patch("/bookings/:id", async (req, res) => {
       const id = req.params.id;
