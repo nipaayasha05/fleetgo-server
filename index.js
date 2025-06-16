@@ -1,6 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
+// const jwt = require("jsonwebtoken");
+// const cookieParser = require("cookie-parser");
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -10,8 +12,32 @@ const port = process.env.PORT || 3000;
 // middleware
 app.use(cors());
 app.use(express.json());
+// app.use(cookieParser());
+
+// const logger = (req, res, next) => {
+//   console.log("inside the logger middleware");
+//   next();
+// };
+
+// const verifyToken = (req, res, next) => {
+//   const token = req?.cookies?.token;
+//   console.log("cookie in the middleware", req.cookies);
+//   if (!token) {
+//     return res.status(401).send({ message: "unauthorized access" });
+//   }
+
+//   jwt.verify(token, process.env.JWT_ACCESS_SECRET, (err, decoded) => {
+//     if (err) {
+//       return req.status(401).send({ message: "unauthorized access" });
+//     }
+//     console.log(decoded);
+//     req.decoded = decoded;
+//     next();
+//   });
+// };
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+// const cookieParser = require("cookie-parser");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.sgjw94w.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -28,11 +54,30 @@ async function run() {
     const carsCollection = client.db("carRental").collection("cars");
     const bookingCollection = client.db("carRental").collection("bookings");
 
+    // jwt
+    // app.post("/jwt", async (req, res) => {
+    //   const userData = req.body;
+    //   const token = jwt.sign(userData, process.env.JWT_ACCESS_SECRET, {
+    //     expiresIn: "1d",
+    //   });
+
+    //   res.cookie("token", token, {
+    //     httpOnly: true,
+    //     secure: false,
+    //   });
+
+    //   res.send({ success: true });
+    // });
+
     // cars api
     app.get("/cars", async (req, res) => {
       const { search } = req.query;
 
       const email = req.query.email;
+      // console.log("inside cars", req.cookies);
+      // if (email !== req.decoded.email) {
+      //   return req.status(403).send({ message: "forbidden access" });
+      // }
       let query = {};
 
       if (search) {
