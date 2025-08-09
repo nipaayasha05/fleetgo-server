@@ -1,8 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
-// const jwt = require("jsonwebtoken");
-// const cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -10,31 +10,19 @@ const port = process.env.PORT || 3000;
 // V6NqseoS43khXDTj
 
 // middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://sprightly-moonbeam-219a97.netlify.app",
+      "http://localhost:4173",
+    ],
+    credentials: true,
+  })
+);
+// app.use(cors());
 app.use(express.json());
-// app.use(cookieParser());
-
-// const logger = (req, res, next) => {
-//   console.log("inside the logger middleware");
-//   next();
-// };
-
-// const verifyToken = (req, res, next) => {
-//   const token = req?.cookies?.token;
-//   console.log("cookie in the middleware", req.cookies);
-//   if (!token) {
-//     return res.status(401).send({ message: "unauthorized access" });
-//   }
-
-//   jwt.verify(token, process.env.JWT_ACCESS_SECRET, (err, decoded) => {
-//     if (err) {
-//       return req.status(401).send({ message: "unauthorized access" });
-//     }
-//     console.log(decoded);
-//     req.decoded = decoded;
-//     next();
-//   });
-// };
+app.use(cookieParser());
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 // const cookieParser = require("cookie-parser");
@@ -54,30 +42,55 @@ async function run() {
     const carsCollection = client.db("carRental").collection("cars");
     const bookingCollection = client.db("carRental").collection("bookings");
 
-    // jwt
-    // app.post("/jwt", async (req, res) => {
-    //   const userData = req.body;
-    //   const token = jwt.sign(userData, process.env.JWT_ACCESS_SECRET, {
-    //     expiresIn: "1d",
-    //   });
+    const verifyToken = (req, res, next) => {
+      const token = req?.cookies?.token;
+      // console.log(token);
+      if (!token)
+        return res.status(401).send({ message: "Unauthorized Access" });
+      jwt.verify(token, process.env.JWT_SECRET_KEY, (err, decoded) => {
+        if (err) {
+          // console.log(err);
+          return res.status(401).send({ message: "Unauthorized Access" });
+        }
+        req.user = decoded;
+        next();
+      });
+      // console.log(token);
+    };
 
-    //   res.cookie("token", token, {
-    //     httpOnly: true,
-    //     secure: false,
-    //   });
+    app.post("/jwt", (req, res) => {
+      const email = req.body;
+      const token = jwt.sign(email, process.env.JWT_SECRET_KEY, {
+        expiresIn: "7d",
+      });
 
-    //   res.send({ success: true });
-    // });
+      res
+        .cookie("token", token, {
+          path: "/",
+          httpOnly: true,
+          secure: true,
+          sameSite: "none",
+        })
+        .send({ success: true });
+    });
+
+    app.post("/logout", async (req, res) => {
+      res
+        .clearCookie("token", {
+          path: "/",
+          httpOnly: true,
+          secure: true,
+          sameSite: "none",
+        })
+        .send({ success: true });
+    });
 
     // cars api
-    app.get("/cars", async (req, res) => {
+    app.get("/available-cars", async (req, res) => {
       const { search } = req.query;
 
       const email = req.query.email;
-      // console.log("inside cars", req.cookies);
-      // if (email !== req.decoded.email) {
-      //   return req.status(403).send({ message: "forbidden access" });
-      // }
+
       let query = {};
 
       if (search) {
@@ -103,6 +116,16 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/cars", verifyToken, async (req, res) => {
+      const email = req.query.email;
+      const query = {};
+      if (email) {
+        query.email = email;
+      }
+      const result = await carsCollection.find(query).toArray();
+      res.send(result);
+    });
+
     app.get("/recentCar", async (req, res) => {
       const result = await carsCollection
         .find()
@@ -112,7 +135,16 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/bookings", async (req, res) => {
+    app.get("/topCar", async (req, res) => {
+      const result = await carsCollection
+        .find()
+        .sort({ bookingCount: -1 })
+
+        .toArray();
+      res.send(result);
+    });
+
+    app.get("/bookings", verifyToken, async (req, res) => {
       const email = req.query.email;
       const query = {};
       if (email) {
