@@ -139,7 +139,7 @@ async function run() {
       const result = await carsCollection
         .find()
         .sort({ bookingCount: -1 })
-
+        .limit(8)
         .toArray();
       res.send(result);
     });
@@ -164,7 +164,7 @@ async function run() {
 
     app.post("/bookings", async (req, res) => {
       const booking = req.body;
-      console.log(booking);
+      // console.log(booking);
       const result = await bookingCollection.insertOne(booking);
       res.send(result);
     });
