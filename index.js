@@ -41,6 +41,8 @@ async function run() {
   try {
     const carsCollection = client.db("carRental").collection("cars");
     const bookingCollection = client.db("carRental").collection("bookings");
+    const usersCollection = client.db("carRental").collection("users");
+    const favoritesCollection = client.db("carRental").collection("favorites");
 
     const verifyToken = (req, res, next) => {
       const token = req?.cookies?.token;
@@ -85,6 +87,98 @@ async function run() {
         .send({ success: true });
     });
 
+    // users
+    app.post("/user", async (req, res) => {
+      const userData = req.body;
+      userData.created_at = new Date().toISOString();
+      userData.last_loggedIn = new Date().toISOString();
+      // check
+      const existingUser = await usersCollection.findOne({
+        email: userData.email,
+      });
+      if (existingUser) {
+        const result = await usersCollection.updateOne(
+          {
+            email: userData.email,
+          },
+          {
+            $set: { last_loggedIn: new Date().toISOString() },
+          }
+        );
+        return res.send(result);
+      }
+      const result = await usersCollection.insertOne(userData);
+      res.send(result);
+    });
+
+    app.post("/userSocial", async (req, res) => {
+      const userInfo = req.body;
+      console.log(userInfo);
+      const existingUser = await usersCollection.findOne({
+        email: userInfo.email,
+      });
+      console.log(existingUser);
+      if (existingUser) {
+        const result = await usersCollection.updateOne(
+          {
+            email: userInfo.email,
+          },
+          {
+            $set: { last_loggedIn: new Date().toISOString() },
+          }
+        );
+        return res.send(result);
+      } else {
+        const newUser = {
+          ...userInfo,
+          created_at: new Date().toISOString(),
+          last_loggedIn: new Date().toISOString(),
+        };
+        const result = await usersCollection.insertOne(newUser);
+        console.log("New user inserted:", result);
+        return res.send(result);
+      }
+    });
+
+    // add favorites
+    // await favoritesCollection.createIndex(
+    //   { email: 1, carId: 1 },
+    //   {
+    //     unique: true,
+    //   }
+    // );
+    app.post("/favorites", verifyToken, async (req, res) => {
+      const favorite = req.body;
+      const email = req.user.email;
+      favorite.email = email;
+      // check
+      const existing = await favoritesCollection.findOne({
+        email: email,
+        carId: favorite.carId,
+      });
+      if (existing) {
+        return res.status(400).send({ message: "Already added to favorites" });
+      }
+      const result = await favoritesCollection.insertOne(favorite);
+      res.send(result);
+    });
+
+    // get favorites
+    app.get("/favorites", async (req, res) => {
+      const email = req.query.email;
+      const query = email ? { email } : {};
+      const result = await favoritesCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // delete favorite
+    app.delete("/favorites/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id), email: req.user.email };
+      const result = await favoritesCollection.deleteOne(query);
+      res.send(result);
+    });
+
     // cars api
     app.get("/available-cars", async (req, res) => {
       const { search } = req.query;
@@ -124,6 +218,12 @@ async function run() {
       }
       const result = await carsCollection.find(query).toArray();
       res.send(result);
+    });
+
+    app.get("/cars-pagination", verifyToken, async (req, res) => {
+      const email = req.query.email;
+      const count = await carsCollection.countDocuments({ email });
+      res.send({ count });
     });
 
     app.get("/recentCar", async (req, res) => {
